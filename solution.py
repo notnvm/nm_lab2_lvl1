@@ -1,7 +1,9 @@
 import numpy as np
+from numpy import linalg as LA
+import sys
 from funcs import *
 
-np.set_printoptions(linewidth=100)
+np.set_printoptions(linewidth=200, threshold=sys.maxsize)
 
 a = int(input('a = '))
 b = int(input('b = '))
@@ -33,7 +35,7 @@ def fill_bounds_v(v, x, y):
         v[-1, j] = u_test(-1, y[j])
         
 def fill_rhsf(v):
-    F = np.empty((n-1)*(m-1))
+    F = np.empty((n-1)*(m-1)) # type: ignore
     k = 0
     for j in range(1, m):
         for i in range(1, n):
@@ -72,23 +74,57 @@ def fill_rhsf(v):
     return F
 
 def fill_matrix():
-    matrix = np.zeros(((n-1)*(m-1),(n-1)*(m-1)))
-    np.fill_diagonal(matrix, mdiag_elem)
+    matrix = np.diag(np.full((n-1)*(m-1),mdiag_elem)) + np.diag(np.full((n-1)*(m-1) - 1,h), 1) + \
+     np.diag(np.full((n-1)*(m-1) - 1,h), -1) + np.diag(np.full((n-1)*(m-1) - 4,k), 4) + \
+         np.diag(np.full((n-1)*(m-1) - 4,k), -4)
     
-    for i, j in zip(range(0, matrix[0].size - (n - 1)), range(n - 1, np.size(matrix, 1))):
-        matrix[i][j] = matrix[j][i] = k
+    # matrix = np.zeros(((n-1)*(m-1),(n-1)*(m-1)))
+    # np.fill_diagonal(matrix, mdiag_elem)
+          
+    # for i in range(0,(n-1)*(m-1) - 1):
+    #     matrix[i][i+1] = h
         
-    rows = [i for i in range((n - 1) * (m - 1))]
-    columns = [i + 1 for i in range(0, (n - 1) * (m - 1) - 1)]
-    for row, col in zip(rows, columns):
-        if row % (n - 1) == n - 2:
-            matrix[row][col] = 0
-            matrix[col][row] = 0
-        else:
-            matrix[row][col] = h
-            matrix[col][row] = h
-    matrix = np.around(matrix, 2)
+    # for i in range(1,(n-1)*(m-1)):
+    #     matrix[i][i-1] = h
+        
+    # for i in range(0,(n-1)*(m-1) - 4):
+    #     matrix[i][i+4] = k
+        
+    # for i in range(4,(n-1)*(m-1)):
+    #     matrix[i][i-4] = k
         
     return matrix
 
 print(fill_matrix())
+
+def upper_relaxation(A, b, w=1.2):
+    flag = False
+    Nmax = 1000
+    S = 0
+    eps = 1e-7
+    eps_max = 0
+    eps_cur = 0
+    
+    while not flag:
+        eps_max = 0
+        for i in range(n):
+            x_old = x[i]
+            x_new = (1-w)*A[i][i]*x[i]+w*b[i]
+            for j in range(m):
+                if j != i:
+                    x_new -= w*A[i][j]*x[j]
+                    x_new /= A[i][i]
+                    eps_cur = abs(x_old - x_new)
+                    if eps_cur > eps_max:
+                        eps_max = eps_cur
+                    x[i] = x_new
+                S+=1
+                if eps_max < eps or S >= Nmax:
+                    flag = True
+                    
+def optimal_w(A):
+    # A = L + D + R   
+    D = LA.inv(np.diagflat(np.diag(A)))
+    ro = max(LA.eigvals(D @ (np.tril(A) - np.triu(A))))
+    w = 2/(1+math.sqrt((1-ro**2)))
+    return w
