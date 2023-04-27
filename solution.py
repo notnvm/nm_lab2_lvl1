@@ -55,6 +55,13 @@ class Funcs():
 
 func = Funcs()
 
+def find_exact_solution(x,y):
+    u = np.zeros((dv.n + 1, dv.m + 1))
+    for i in range(dv.n + 1):
+        for j in range(dv.m + 1):
+            u[i][j] = func.u_test(x[i],y[j])
+    return u
+
 def find_matrix_elements():
     h = (dv.n/(dv.b-dv.a))**2
     k = (dv.m/(dv.d-dv.c))**2
@@ -63,84 +70,44 @@ def find_matrix_elements():
 
 def fill_bounds_v(v, x, y):
     if not dv.main_task:
+        # for j in range(dv.m + 1):
+        #     v[0, j] = func.mu1_test(y[j])
+        #     v[-1, j] = func.mu2_test(y[j])
+        # for i in range(dv.n + 1):
+        #     v[i, 0] = func.mu3_test(x[i])
+        #     v[i, -1] = func.mu4_test(x[i])
+        
         for j in range(dv.m + 1):
-            v[0, j] = func.mu1_test(y[j])
-            v[-1, j] = func.mu2_test(y[j])
+            v[0, j] = func.mu3_test(x[j])
+            v[-1, j] = func.mu4_test(x[j])
         for i in range(dv.n + 1):
-            v[i, 0] = func.mu3_test(x[i])
-            v[i, -1] = func.mu4_test(x[i])
+            v[i, 0] = func.mu1_test(y[i])
+            v[i, -1] = func.mu2_test(y[i]) 
     else:
-        for j in range(dv.m + 1):
-            v[0, j] = func.mu1(y[j])
-            v[-1, j] = func.mu2(y[j])
-        for i in range(dv.n + 1):
-            v[i, 0] = func.mu3(x[i])
-            v[i, -1] = func.mu4(x[i])
-
-def fill_rhsf(v):
-    F = np.empty((n-1)*(m-1)) # type: ignore
-    s = 0
-    h,k,diag = find_matrix_elements()
-    for j in range(1, dv.m):
-        for i in range(1, dv.n):
-            if j == 1:
-                if i == 1:
-                    F[s] = -func.rsf_test(i, j) - h * v[i - 1, j] - k * v[i, j - 1]
-                    s += 1
-                elif i == dv.n - 1:
-                    F[s] = -func.rsf_test(i, j) - h * v[i + 1, j] - k * v[i, j - 1]
-                    s += 1
-                else:
-                    F[s] = -func.rsf_test(i, j) - k * v[i, j - 1]
-                    s += 1
-
-            elif j == dv.m - 1:
-                if i == 1:
-                    F[s] = -func.rsf_test(i, j) - h * v[i - 1, j] - k * v[i, j + 1]
-                    s += 1
-                elif i == dv.n - 1:
-                    F[s] = -func.rsf_test(i, j) - h * v[i + 1, j] - k * v[i, j + 1]
-                    s += 1
-                else:
-                    F[s] = -func.rsf_test(i, j) - k * v[i, j + 1]
-                    s += 1
-
-            else:
-                if i == 1:
-                    F[s] = -func.rsf_test(i, j) - h * v[i - 1, j]
-                    s += 1
-                elif i == dv.n - 1:
-                    F[s] = -func.rsf_test(i, j) - h * v[i + 1, j]
-                    s += 1
-                else:
-                    F[s] = -func.rsf_test(i, j)
-                    s += 1
-    return F
+        # for j in range(dv.m + 1):
+        #     v[0, j] = func.mu1(y[j])
+        #     v[-1, j] = func.mu2(y[j])
+        # for i in range(dv.n + 1):
+        #     v[i, 0] = func.mu3(x[i])
+        #     v[i, -1] = func.mu4(x[i])
+        
+         for j in range(dv.m + 1):
+            v[0, j] = func.mu3(x[j])
+            v[-1, j] = func.mu4(x[j])
+         for i in range(dv.n + 1):
+            v[i, 0] = func.mu1(y[i])
+            v[i, -1] = func.mu2(y[i])
+    v[:] = v[::-1]
 
 def fill_matrix(): 
     h,k,mdiag_elem = find_matrix_elements()
     matrix = np.diag(np.full((dv.n-1)*(dv.m-1),mdiag_elem)) + np.diag(np.full((dv.n-1)*(dv.m-1) - 1,h), 1) + \
      np.diag(np.full((dv.n-1)*(dv.m-1) - 1,h), -1) + np.diag(np.full((dv.n-1)*(dv.m-1) - 4,k), 4) + \
          np.diag(np.full((dv.n-1)*(dv.m-1) - 4,k), -4)
-    
-    # matrix = np.zeros(((n-1)*(m-1),(n-1)*(m-1)))
-    # np.fill_diagonal(matrix, mdiag_elem)
-          
-    # for i in range(0,(n-1)*(m-1) - 1):
-    #     matrix[i][i+1] = h
-        
-    # for i in range(1,(n-1)*(m-1)):
-    #     matrix[i][i-1] = h
-        
-    # for i in range(0,(n-1)*(m-1) - 4):
-    #     matrix[i][i+4] = k
-        
-    # for i in range(4,(n-1)*(m-1)):
-    #     matrix[i][i-4] = k
-        
+         
     return matrix
 
-def upper_relaxation(v, w=1.2):
+def upper_relaxation(v, w=1.236068):
     flag = False
     Nmax = dv.nmax
     S = 0
