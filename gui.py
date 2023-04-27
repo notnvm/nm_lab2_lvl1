@@ -13,9 +13,52 @@ import random
 import solution as sol
 
 from solution import dv 
+
+class TaskSolution():
+    v_num = np.zeros((dv.n + 1, dv.m + 1))
+    v2_num = np.zeros(((dv.n + 1)*2, (dv.m + 1)*2))
+    u_exact = np.zeros((dv.n + 1, dv.m + 1))
+    diff = np.zeros((dv.n + 1, dv.m + 1))
+    diffv12 = np.zeros((dv.n + 1, dv.m + 1))
+    s_count, eps_max, omega = 0,0,0
+    s_count2, eps_max2, omega2 = 0,0,0
+    
+task_sol = TaskSolution()
 class Callbacks:
     test_tab = True
     use_optimal_omega = False
+    
+    num_sol = True
+    exact_sol = False
+    diff_sol = False
+    
+    def update_help(self):
+        if menu.cb.test_tab:
+            dpg.set_value(item='help_omega', value=f"Параметр метода omega: {task_sol.omega}")
+            dpg.set_value(item='s_counter', value=f"Итераций затрачено на решение: {task_sol.s_count}")
+            dpg.set_value(item='eps_max_solved', value=f"Достигнутая точность eps: {task_sol.eps_max}")
+        else:
+            dpg.set_value(item='help_omega', value=f"Параметр метода omega: {task_sol.omega2}")
+            dpg.set_value(item='s_counter', value=f"Итераций затрачено на решение: {task_sol.s_count2}")
+            dpg.set_value(item='eps_max_solved', value=f"Достигнутая точность eps: {task_sol.eps_max2}")
+        
+    def radio_butn_cb(self,sender,data):
+        print(dpg.get_value('rb1'))
+        if dpg.get_value('rb1') == menu.rb_item_list[0]:
+            menu.create_table(dv.m + 1, dv.n + 1, task_sol.v_num)
+        if dpg.get_value('rb1') == menu.rb_item_list[1]:
+            menu.create_table(dv.m + 1, dv.n + 1, task_sol.u_exact)
+        if dpg.get_value('rb1') == menu.rb_item_list[2]:
+            menu.create_table(dv.m + 1, dv.n + 1, task_sol.diff)
+            
+    def radio_butn_cb_main(self,sender,data):
+        print(dpg.get_value('rb_main'))
+        if dpg.get_value('rb_main') == menu.rb_item_list[0]:
+            menu.create_table(dv.m + 1, dv.n + 1, task_sol.v_num)
+        if dpg.get_value('rb_main') == menu.rb_item_list[1]:
+            menu.create_table(dv.m + 1, dv.n + 1, task_sol.v2_num)
+        if dpg.get_value('rb_main') == menu.rb_item_list[2]:
+            menu.create_table(dv.m + 1, dv.n + 1, task_sol.diffv12)
     
     def set_test(self, sender, data):
         dv.main_task = data
@@ -31,6 +74,7 @@ class Callbacks:
     def tb_callback(self):
         dv.main_task = not dv.main_task
         self.test_tab = not self.test_tab
+        self.update_help()
 
     def set_bound(self):
         dv.a = dpg.get_value(1)
@@ -53,35 +97,46 @@ class Callbacks:
         v = np.zeros((dv.n + 1, dv.m + 1))
         sol.fill_bounds_v(v, x, y)
         
-        v_sol, s_count, eps_max, omega = 0,0,0,0
+        # v_sol, s_count, eps_max, omega = 0,0,0,0
         if self.use_optimal_omega:
             omega = sol.optimal_w(sol.fill_matrix())
-            v_sol, s_count, eps_max, omega = sol.upper_relaxation(v, omega)
+            if not dv.main_task:
+                task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v, omega) # type: ignore
+            else:
+                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, omega) # type: ignore
         else:
-            v_sol, s_count, eps_max, omega = sol.upper_relaxation(v)
+            if not dv.main_task:
+                task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v) # type: ignore
+            else:
+                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v) # type: ignore
+            
+        task_sol.u_exact=sol.find_exact_solution(x,y)
+        task_sol.diff = np.fabs(task_sol.u_exact - task_sol.v_num) # type: ignore
         
-        menu.create_table(dv.m + 1, dv.n + 1, v_sol)
+        menu.create_table(dv.m + 1, dv.n + 1, task_sol.v_num[:][::-1])     
+        self.update_help()
         
-        dpg.set_value(item='help_omega', value=f"Параметр метода omega: {omega}")
-        dpg.set_value(item='s_counter', value=f"Итераций затрачено на решение: {s_count}")
-        dpg.set_value(item='eps_max_solved', value=f"Достигнутая точность eps: {eps_max}")
-        
-        
-        plot_img = menu.setup_plot(x,y,v_sol)
+        plot_img = menu.setup_plot(x,y,task_sol.v_num)
         if self.test_tab:
             dpg.delete_item("texture_id")
             dpg.delete_item("plot_texture")
             dpg.add_raw_texture( 640, 480, plot_img, format=dpg.mvFormat_Float_rgba, tag="texture_id",parent='tex_reg') # type: ignore
             dpg.add_image("texture_id", pos=[int((menu.width-menu.ofx)/4.5),menu.height-500], tag='plot_texture', parent='test_tab') 
+            
+        if not self.test_tab:
+            dpg.delete_item("texture_id_main")
+            dpg.delete_item("plot_texture_main")
+            dpg.add_raw_texture( 640, 480, plot_img, format=dpg.mvFormat_Float_rgba, tag="texture_id_main",parent='tex_reg') # type: ignore
+            dpg.add_image("texture_id_main", pos=[int((menu.width-menu.ofx)/4.5),menu.height-500], tag='plot_texture_main', parent='main_tab') 
         
         print(f'button pressed, solved={bool(dv.solved)}\nx={x}, y={y}') 
-        print(f'\ns={s_count}, eps_max={np.around(eps_max,5)},\nv_sol={v_sol}')
-        print(f'v[3,2]={np.around(v[3,2],3)}\n\n')  
+        print(f'\ns={task_sol.s_count}, eps_max={np.around(task_sol.eps_max,5)},\nv_sol={task_sol.v_num}')
         
-        print(np.around(v[::-1], 3))
+        # print(np.around(v[::-1], 3))
         # for row in np.around(v, 3):
         #     print(*row)
-        # print('\n') #! правая сторона моя - верх в проге, левая моя - низ прога, верх мой - левая прога, низ мой - правая прога( тут с обратным знаком)???
+        # print('\n') #! правая сторона моя - верх в проге, левая моя - низ прога, верх мой - левая прога, низ мой - правая прога( тут с обратным знаком)??? 
+        #* В программе это строка, у меня - столбец
                      
 class Menu:
     title: str
@@ -91,6 +146,8 @@ class Menu:
     ofx: int = 410
     ofy: int = 70
     cb = Callbacks()
+    rb_item_list = ["Численноe решениe", "Точноe решениe", "Разность решений"]
+    rb_item_list_main = ["Численноe решениe", "Численное решение на сетке с половинным шагом", "Разность решений"]
      
     def __init__(self, t, w, h, p = pos):
         self.title = t
@@ -125,7 +182,7 @@ class Menu:
                 with dpg.table_row(parent='table100'):
                     for j in range(num_cols):
                         dpg.add_text(f"{np.around(value[i][j],3)}")
-        else:
+        if dv.main_task:
             dpg.delete_item('table100_main', children_only=True)  
             for j in range(num_cols):
                 dpg.add_table_column(label='U(i,j)', parent='table100_main')
@@ -139,28 +196,9 @@ class Menu:
         fig = plt.figure(facecolor='#252526')
         sp = fig.add_subplot(projection='3d')
         sp.set_title('График решения', color='white')
-        
-        # def fun(x, y):
-        #     return x**2 + y
-        
-        # x = y = np.arange(-3.0, 3.0, 0.05)
         x, y = np.meshgrid(x, y)
-        # zs = np.array(fun(np.ravel(x), np.ravel(y)))
-        # z = zs.reshape(X.shape)
         z.reshape(x.shape)
-
-        # sp.plot_surface(X, Y, Z,rstride=1, cstride=1, color='skyblue', linewidth=0, antialiased=False)
         sp.plot_surface(x, y, z, color='skyblue')
-
-        # sequence_containing_x_vals = list(range(0, 100))
-        # sequence_containing_y_vals = list(range(0, 100))
-        # sequence_containing_z_vals = list(range(0, 100))
-
-        # random.shuffle(sequence_containing_x_vals)
-        # random.shuffle(sequence_containing_y_vals)
-        # random.shuffle(sequence_containing_z_vals)
-
-        # sp.scatter(sequence_containing_x_vals, sequence_containing_y_vals, sequence_containing_z_vals, c='red')
 
         canvas = FigureCanvasAgg(fig)
         ax = fig.gca()
@@ -168,15 +206,15 @@ class Menu:
         ax.tick_params(axis='x', colors='white')
         ax.tick_params(axis='y', colors='white')
         ax.tick_params(axis='z', colors='white') # type: ignore
-        ax.set_xlabel('$x$', fontsize=20, color='white')
-        ax.set_ylabel('$y$', fontsize=20, color='white')
-        ax.set_zlabel('$U(x,y)$', fontsize=20, color='white') # type: ignore
-        # ax.set_xticks([0,1,2])
+        # ax.set_zlim(-1,1)
+        # ax.set_xlabel('$x$', fontsize=17, color='white')
+        # ax.set_ylabel('$y$', fontsize=17, color='white')
+        # ax.set_zlabel('$V(x,y)$', fontsize=17, color='white') # type: ignore
         canvas.draw()
         buf = canvas.buffer_rgba()
         image = np.asarray(buf)
         image = image.astype(np.float32) / 255
-        plt.savefig('G://dev//nm_level_1//img.png')
+        # plt.savefig('G://dev//nm_level_1//img.png')
 
         return image                 
                             
@@ -192,11 +230,6 @@ dpg.create_viewport(title="gui", resizable=False, width=1680, height=960)
 dpg.setup_dearpygui()
     
 menu = Menu('gui', dpg.get_viewport_width(), dpg.get_viewport_height())    
-
-# with dpg.texture_registry():
-#       dpg.add_raw_texture(
-#         640, 480, menu.setup_plot(), format=dpg.mvFormat_Float_rgba, tag="texture_id" # type: ignore
-#     )
 
 menu.setup_font('C:\\Windows\\Fonts\\arial.ttf', 16, tag='arial')    
     
@@ -221,22 +254,31 @@ with dpg.window(
     dpg.draw_line([menu.width - menu.ofx - 10,menu.ofy*4+30], [menu.width - 30,menu.ofy*4+30])
     dpg.add_text("Справка", pos=[menu.width-int(menu.ofx/1.7),int(menu.ofy*4.35)+30])
     demo.show_demo()
+    menu.setup_help()
     
     with dpg.tab_bar(callback=menu.cb.tb_callback):
         with dpg.tab(label="Тестовая задача", order_mode=True, tag='test_tab'):
-            # with dpg.table(header_row=True, row_background=True, borders_innerV=True, borders_innerH=True, borders_outerH=True, borders_outerV=True, resizable=True, no_host_extendX=True, width=menu.width-440, height=menu.height-550, tag='table100'):
+            
              dpg.add_table(header_row=True, row_background=True, borders_innerV=True, borders_innerH=True, borders_outerH=True, borders_outerV=True, resizable=True, no_host_extendX=True, width=menu.width-440, height=menu.height-550, tag='table100', scrollY=True)        
              menu.create_table(1,1,np.zeros((3,3)))
              
-             menu.setup_help()
+            #  menu.setup_help()
              dpg.add_texture_registry(tag='tex_reg')
              dpg.add_raw_texture( 640, 480, menu.setup_plot(), format=dpg.mvFormat_Float_rgba, tag="texture_id",parent='tex_reg') # type: ignore
              dpg.add_image("texture_id", pos=[int((menu.width-menu.ofx)/4.5),menu.height-500], tag='plot_texture')  
+            #  dpg.add_text("Достигнутая точность eps: ", pos=[self.width - self.ofx,460+30], tag='eps_max_solved')
+             dpg.add_text('Таблица: ', pos=[menu.width - menu.ofx,600])
+             dpg.add_radio_button(items=menu.rb_item_list, horizontal=False, pos=[menu.width - menu.ofx,630], callback=menu.cb.radio_butn_cb, tag='rb1')
              
         with dpg.tab(label="Основная задача", order_mode=True, tag='main_tab'):
-             dpg.add_text("Основная", pos=[400,280])  
-             dpg.add_table(header_row=True, row_background=True, borders_innerV=True, borders_innerH=True, borders_outerH=True, borders_outerV=True, resizable=True, no_host_extendX=True, width=menu.width-440, height=menu.height-550, tag='table100_main', scrollY=True)        
-             menu.create_table(1,1,np.zeros((3,3)))
+            
+            #  dpg.add_text("Основная", pos=[400,280])  
+             dpg.add_table(header_row=True, row_background=True, borders_innerV=True, borders_innerH=True, borders_outerH=True, borders_outerV=True, resizable=True, no_host_extendX=True, width=menu.width-440, height=menu.height-550, tag='table100_main', scrollY=True)
+             
+             dpg.add_raw_texture( 640, 480, menu.setup_plot(), format=dpg.mvFormat_Float_rgba, tag="texture_id_main",parent='tex_reg') # type: ignore
+             dpg.add_image("texture_id_main", pos=[int((menu.width-menu.ofx)/4.5),menu.height-500], tag='plot_texture_main') 
+             dpg.add_text('Таблица: ', pos=[menu.width - menu.ofx,600])
+             dpg.add_radio_button(items=menu.rb_item_list_main, horizontal=False, pos=[menu.width - menu.ofx,630], callback=menu.cb.radio_butn_cb_main, tag='rb_main')
              
 
 
