@@ -6,12 +6,12 @@ from numpy import linalg as LA
 class data_values():
     main_task: bool = False
     solved: bool = False
-    a: int = 0 
-    b: int = 0
-    c: int = 0
-    d: int = 0
-    n: int = 0
-    m: int = 0
+    a: int = 1 
+    b: int = 2
+    c: int = 2
+    d: int = 3
+    n: int = 5
+    m: int = 5
     eps: float = 1e-6
     nmax: int = 500
 
@@ -77,12 +77,6 @@ def fill_bounds_v(v, x, y, n, m):
             v[i, 0] = func.mu3_test(x[i])
             v[i, -1] = func.mu4_test(x[i])
     else:   
-        #  for j in range(m + 1):
-        #     v[0, j] = func.mu3(x[j])
-        #     v[-1, j] = func.mu4(x[j])
-        #  for i in range(n + 1):
-        #     v[i, 0] = func.mu1(y[i])
-        #     v[i, -1] = func.mu2(y[i])
         for j in range(m + 1):
             v[0, j] = func.mu1(y[j])
             v[-1, j] = func.mu2(y[j])

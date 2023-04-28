@@ -22,6 +22,8 @@ class TaskSolution():
     diffv12 = np.zeros((dv.n + 1, dv.m + 1))
     s_count, eps_max, omega = 0,0,0
     s_count2, eps_max2, omega2 = 0,0,0
+    eps_final, eps_final_main = 0, 0
+    max_diff_ij, max_diff_ij_main = (0,0),(0,0)
     
 task_sol = TaskSolution()
 class Callbacks:
@@ -33,10 +35,15 @@ class Callbacks:
             dpg.set_value(item='help_omega', value=f"Параметр метода omega: {task_sol.omega}")
             dpg.set_value(item='s_counter', value=f"Итераций затрачено на решение: {task_sol.s_count}")
             dpg.set_value(item='eps_max_solved', value=f"Достигнутая точность eps: {task_sol.eps_max}")
+            dpg.set_value(item='eps_final', value=f"Задача решена с погрешностью: {task_sol.eps_final}")
+            dpg.set_value(item='eps_final', value=f"Задача решена с погрешностью: {task_sol.eps_final}")
+            dpg.set_value(item='max_diff_ij', value=f"Максимальное отклонение решений в узле: {task_sol.max_diff_ij}")
         else:
             dpg.set_value(item='help_omega', value=f"Параметр метода omega: {task_sol.omega2}")
             dpg.set_value(item='s_counter', value=f"Итераций затрачено на решение: {task_sol.s_count2}")
             dpg.set_value(item='eps_max_solved', value=f"Достигнутая точность eps: {task_sol.eps_max2}")
+            dpg.set_value(item='eps_final', value=f"Задача решена с погрешностью: {task_sol.eps_final_main}")
+            dpg.set_value(item='max_diff_ij', value=f"Максимальное отклонение решений в узле: {task_sol.max_diff_ij_main}")
         
     def radio_butn_cb(self):
         print(dpg.get_value('rb1'))
@@ -122,19 +129,22 @@ class Callbacks:
         if not dv.main_task:    
             task_sol.u_exact=sol.find_exact_solution(x, y, dv.n, dv.m)
             task_sol.diff = np.fabs(task_sol.u_exact - task_sol.v_num) # type: ignore
+            task_sol.max_diff_ij = np.unravel_index(task_sol.diff.argmax(), task_sol.diff.shape) # type: ignore
+            task_sol.eps_final = task_sol.diff[task_sol.max_diff_ij[0], task_sol.max_diff_ij[1]]
         else:
             v12_num_sliced = task_sol.v12_num[::2, ::2]
             task_sol.diffv12 = np.fabs(task_sol.v_num2 - v12_num_sliced)
+            task_sol.max_diff_ij_main = np.unravel_index(task_sol.diffv12.argmax(), task_sol.diffv12.shape) # type: ignore
+            task_sol.eps_final_main = task_sol.diffv12[task_sol.max_diff_ij_main[0], task_sol.max_diff_ij_main[1]]
         
         if not dv.main_task:
             menu.create_table(dv.n + 1, dv.m + 1, task_sol.v_num) 
-            plot_img = menu.setup_plot(x,y,task_sol.v_num)
+            plot_img = menu.setup_plot(x,y,task_sol.v_num) #! change plot
         else:
             menu.create_table(dv.n + 1, dv.m + 1, task_sol.v_num2) 
-            plot_img = menu.setup_plot(x,y,task_sol.v_num2)
+            plot_img = menu.setup_plot(x,y,task_sol.v_num2) #! change plot
         self.update_help()
         
-        # plot_img = menu.setup_plot(x,y,task_sol.v_num)
         if self.test_tab:
             dpg.delete_item("texture_id")
             dpg.delete_item("plot_texture")
@@ -175,12 +185,12 @@ class Menu:
         dpg.bind_font(tag)
         
     def setup_inputs(self, offset_x=ofx, offset_y=ofy):
-         dpg.add_input_int(label="= a", width=130, pos=[self.width - offset_x,offset_y], step=1, default_value=0, callback=self.cb.set_bound, tag=1, on_enter=False)
-         dpg.add_input_int(label="= b", width=130, pos=[self.width - offset_x,int(offset_y*1.5)], step=1, default_value=0, callback=self.cb.set_bound, tag=2, on_enter=False)
-         dpg.add_input_int(label="= c", width=130, pos=[self.width - offset_x//2,offset_y], step=1, default_value=0, callback=self.cb.set_bound, tag=3, on_enter=False)
-         dpg.add_input_int(label="= d", width=130, pos=[self.width - offset_x//2,int(offset_y*1.5)], step=1, default_value=0, callback=self.cb.set_bound, tag=4, on_enter=False)
-         dpg.add_input_int(label="= n", width=130, pos=[self.width - offset_x,offset_y*2], step=1, default_value=0, callback=self.cb.set_bound, tag=5, on_enter=False)
-         dpg.add_input_int(label="= m", width=130, pos=[self.width - offset_x//2,offset_y*2], step=1, default_value=0, callback=self.cb.set_bound, tag=6, on_enter=False)
+         dpg.add_input_int(label="= a", width=130, pos=[self.width - offset_x,offset_y], step=1, default_value=dv.a, callback=self.cb.set_bound, tag=1, on_enter=False)
+         dpg.add_input_int(label="= b", width=130, pos=[self.width - offset_x,int(offset_y*1.5)], step=1, default_value=dv.b, callback=self.cb.set_bound, tag=2, on_enter=False)
+         dpg.add_input_int(label="= c", width=130, pos=[self.width - offset_x//2,offset_y], step=1, default_value=dv.c, callback=self.cb.set_bound, tag=3, on_enter=False)
+         dpg.add_input_int(label="= d", width=130, pos=[self.width - offset_x//2,int(offset_y*1.5)], step=1, default_value=dv.d, callback=self.cb.set_bound, tag=4, on_enter=False)
+         dpg.add_input_int(label="= n", width=130, pos=[self.width - offset_x,offset_y*2], step=1, default_value=dv.n, callback=self.cb.set_bound, tag=5, on_enter=False)
+         dpg.add_input_int(label="= m", width=130, pos=[self.width - offset_x//2,offset_y*2], step=1, default_value=dv.m, callback=self.cb.set_bound, tag=6, on_enter=False)
          #tag = 9
          dpg.add_input_float(label="= eps", width=130, pos=[self.width - offset_x,int(offset_y*2.5)], step=1, default_value=dv.eps, callback=self.cb.set_bound, tag=7, on_enter=False, format='%.1e')
          #rag = 12
@@ -231,6 +241,8 @@ class Menu:
         dpg.add_text("Параметр метода omega: ", pos=[self.width - self.ofx,400+30], tag='help_omega')
         dpg.add_text("Итераций затрачено на решение: ", pos=[self.width - self.ofx,430+30], tag='s_counter')
         dpg.add_text("Достигнутая точность eps: ", pos=[self.width - self.ofx,460+30], tag='eps_max_solved')
+        dpg.add_text("Задача решена с погрешностью: ", pos=[self.width - self.ofx,490+30], tag='eps_final')
+        dpg.add_text("Максимальное отклонение решений в узле: ", pos=[self.width - self.ofx,520+30], tag='max_diff_ij')
     
 dpg.create_context()
 dpg.create_viewport(title="gui", resizable=False, width=1680, height=960)
