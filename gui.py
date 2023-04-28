@@ -9,17 +9,19 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 import numpy as np
 
-import random
 import solution as sol
-
 from solution import dv 
+
+#! #####################################
+# @TODO: #*Проверить с неодинаковыми n,m
+#! #####################################
 
 class TaskSolution():
     v_num = np.zeros((dv.n + 1, dv.m + 1))
     u_exact = np.zeros((dv.n + 1, dv.m + 1))
     diff = np.zeros((dv.n + 1, dv.m + 1))
     
-    v12_num = np.zeros(((dv.n + 1)*2 + 1, (dv.m + 1)*2 + 1))
+    v12_num = np.zeros((dv.n*2 + 1, dv.m*2 + 1))
     diffv12 = np.zeros((dv.n + 1, dv.m + 1))
     s_count, eps_max, omega = 0,0,0
     s_count2, eps_max2, omega2 = 0,0,0
@@ -53,7 +55,7 @@ class Callbacks:
         if dpg.get_value('rb_main') == menu.rb_item_list_main[0]:
             menu.create_table(dv.m + 1, dv.n + 1, task_sol.v_num)
         if dpg.get_value('rb_main') == menu.rb_item_list_main[1]:
-            menu.create_table((dv.m+1)*2+1, (dv.n+1)*2+1, task_sol.v12_num)
+            menu.create_table(dv.m*2+1, dv.n*2+1, task_sol.v12_num)
         if dpg.get_value('rb_main') == menu.rb_item_list_main[2]:
             menu.create_table(dv.m + 1, dv.n + 1, task_sol.diffv12)
     
@@ -92,48 +94,40 @@ class Callbacks:
         x = np.linspace(dv.a, dv.b, dv.n+1)
         y = np.linspace(dv.c, dv.d, dv.m+1)
         v = np.zeros((dv.n + 1, dv.m + 1))
-        sol.fill_bounds_v(v, x, y)
+        sol.fill_bounds_v(v, x, y, dv.n, dv.m)
         
         # v_sol, s_count, eps_max, omega = 0,0,0,0
         if self.use_optimal_omega:
-            omega = sol.optimal_w(sol.fill_matrix())
+            omega = sol.optimal_w(sol.fill_matrix(dv.n, dv.m))
+            omega2 = sol.optimal_w(sol.fill_matrix(dv.n*2, dv.m*2))
             if not dv.main_task:
-                task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v, omega) # type: ignore
+                task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v, dv.n, dv.m, omega) # type: ignore
             else:
-                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, omega) # type: ignore 
-                 
-                # n_old, m_old = dv.n, dv.m
-                # dv.n = (dv.n+1)*2
-                # dv.m = (dv.m+1)*2
-                
-                # x12 = np.linspace(dv.a, dv.b, dv.n+1)
-                # y12 = np.linspace(dv.c, dv.d, dv.m+1)
-                # v12 = np.zeros((dv.n+1, dv.m+1))
-                # sol.fill_bounds_v(v12, x12, y12)
-                # print(f'\n\n\nv12=\n{v12}\n\n\n')
-                
-                # dv.n, dv.m = n_old, m_old 
-                # task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, omega) # type: ignore           
-                # n_old, m_old = dv.n, dv.m
-                
-                # dv.n = (dv.n+1)*2
-                # dv.m = (dv.m+1)*2
-                # task_sol.v_num12, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v12, omega) # type: ignore       
-                # print(f'\n\n\nv12=\n{v12}\n\n\n')
-                # print(f'\n\n\nv_num12=\n{task_sol.v12_num}\n\n\n')
-                # dv.n, dv.m = n_old, m_old 
+                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, dv.n, dv.m, omega) # type: ignore 
+                #* find solution, meshgrid2 = 1/2meshgrid1
+                x12 = np.linspace(dv.a, dv.b, dv.n*2+1)
+                y12 = np.linspace(dv.c, dv.d, dv.m*2+1)
+                v12 = np.zeros((dv.n*2 + 1, dv.m*2 + 1))
+                sol.fill_bounds_v(v12, x12, y12, dv.n*2, dv.m*2)
+                task_sol.v12_num, sc2, epm2, omega2 = sol.upper_relaxation(v12, dv.n*2, dv.m*2, omega2) # type: ignore 
+                print(f'\n\n\nv_num12=\n{task_sol.v12_num}\n\n\n')
         else:
             if not dv.main_task:
-                task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v) # type: ignore
+                task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v, n=dv.n, m=dv.m) # type: ignore
             else:
-                x12 = np.linspace(dv.a, dv.b, (dv.n+1)*2)
-                y12 = np.linspace(dv.c, dv.d, (dv.m+1)*2)
-                v12 = np.zeros(((dv.n + 1)*2, (dv.m + 1)*2))
-                sol.fill_bounds_v(v12, x12, y12)
-                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v) # type: ignore
+                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, n=dv.n, m=dv.m) # type: ignore
+                #* find solution, meshgrid2 = 1/2meshgrid1
+                x12 = np.linspace(dv.a, dv.b, dv.n*2+1)
+                y12 = np.linspace(dv.c, dv.d, dv.m*2+1)
+                v12 = np.zeros((dv.n*2 + 1, dv.m*2 + 1))
+                sol.fill_bounds_v(v12, x12, y12, dv.n*2, dv.m*2)
+                task_sol.v12_num, sc2, epm2, omega2 = sol.upper_relaxation(v12, dv.n*2, dv.m*2) # type: ignore 
+                print(f'\n\n\nv_num12=\n{task_sol.v12_num}\n\n\n')
             
-        task_sol.u_exact=sol.find_exact_solution(x,y)
+        task_sol.u_exact=sol.find_exact_solution(x, y, dv.n, dv.m)
         task_sol.diff = np.fabs(task_sol.u_exact - task_sol.v_num) # type: ignore
+        v12_num_sliced = task_sol.v12_num[::2, ::2]
+        task_sol.diffv12 = np.fabs(task_sol.v_num - v12_num_sliced)
         
         menu.create_table(dv.m + 1, dv.n + 1, task_sol.v_num[:][::-1])     
         self.update_help()
@@ -200,7 +194,7 @@ class Menu:
         if not dv.main_task:
             dpg.delete_item('table100', children_only=True)  
             for j in range(num_cols):
-                dpg.add_table_column(label='U(i,j)', parent='table100')
+                dpg.add_table_column(label='V(i,j)', parent='table100')
             for i in range(num_rows):
                 with dpg.table_row(parent='table100'):
                     for j in range(num_cols):
@@ -208,7 +202,7 @@ class Menu:
         if dv.main_task:
             dpg.delete_item('table100_main', children_only=True)  
             for j in range(num_cols):
-                dpg.add_table_column(label='U(i,j)', parent='table100_main')
+                dpg.add_table_column(label='V(i,j)', parent='table100_main')
             for i in range(num_rows):
                 with dpg.table_row(parent='table100_main'):
                     for j in range(num_cols):
