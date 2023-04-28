@@ -33,10 +33,10 @@ class Funcs():
         return self.u_test(dv.b, y)
 
     def mu3_test(self, x):
-        return self.u_test(x, dv.c)
+        return self.u_test(x, y=dv.c)
 
     def mu4_test(self, x):
-        return self.u_test(x, dv.d)
+        return self.u_test(x, y=dv.d)
     
     def rsf(self, x, y):
         return -math.exp(-x*y**2)
@@ -76,28 +76,19 @@ def fill_bounds_v(v, x, y, n, m):
         for i in range(n + 1):
             v[i, 0] = func.mu3_test(x[i])
             v[i, -1] = func.mu4_test(x[i])
-        
-        # for j in range(dv.m + 1):
-        #     v[0, j] = func.mu3_test(x[j])
-        #     v[-1, j] = func.mu4_test(x[j])
-        # for i in range(dv.n + 1):
-        #     v[i, 0] = func.mu1_test(y[i])
-        #     v[i, -1] = func.mu2_test(y[i]) #! верно
-    else:
+    else:   
+        #  for j in range(m + 1):
+        #     v[0, j] = func.mu3(x[j])
+        #     v[-1, j] = func.mu4(x[j])
+        #  for i in range(n + 1):
+        #     v[i, 0] = func.mu1(y[i])
+        #     v[i, -1] = func.mu2(y[i])
         for j in range(m + 1):
             v[0, j] = func.mu1(y[j])
             v[-1, j] = func.mu2(y[j])
         for i in range(n + 1):
             v[i, 0] = func.mu3(x[i])
             v[i, -1] = func.mu4(x[i])
-        
-        #  for j in range(dv.m + 1):
-        #     v[0, j] = func.mu3(x[j])
-        #     v[-1, j] = func.mu4(x[j])
-        #  for i in range(dv.n + 1):
-        #     v[i, 0] = func.mu1(y[i]) #! верно
-        #     v[i, -1] = func.mu2(y[i])
-    v[:] = v[::-1] 
 
 def fill_matrix(n, m): 
     h,k,mdiag_elem = find_matrix_elements(n, m)
@@ -114,6 +105,14 @@ def upper_relaxation(v, n, m, w=1.236068):
     eps = dv.eps
     eps_max = 0
     eps_cur = 0
+    x = []
+    y = []
+    if not dv.main_task:
+        x = np.linspace(dv.a, dv.b, dv.n+1)
+        y = np.linspace(dv.c, dv.d, dv.m+1)
+    else:
+        x = np.linspace(dv.a, dv.b, dv.n*2+1)
+        y = np.linspace(dv.c, dv.d, dv.m*2+1)
     
     h2 = -(n / (dv.b - dv.a)) ** 2
     k2 = -(m / (dv.d - dv.c)) ** 2
@@ -126,9 +125,9 @@ def upper_relaxation(v, n, m, w=1.236068):
                 v_old = v[i][j]
                 v_new = -w*(h2 * (v[i + 1][j] + v[i - 1][j]) + k2 * (v[i][j + 1] + v[i][j - 1]))
                 if not dv.main_task:
-                    v_new += (1-w)*a2*v[i][j]+w*func.rsf_test(i,j) #! rsf_test(i,j)
+                    v_new += (1-w)*a2*v[i][j]+w*func.rsf_test(x[i],y[j])
                 else:
-                    v_new += (1-w)*a2*v[i][j]+w*func.rsf(i,j)
+                    v_new += (1-w)*a2*v[i][j]+w*func.rsf(x[i],y[j])
                 v_new /= a2
                 eps_cur = math.fabs(v_old - v_new)
                 if eps_cur > eps_max:
@@ -138,7 +137,7 @@ def upper_relaxation(v, n, m, w=1.236068):
         if eps_max < eps or S >= Nmax:
             flag = True
     return v, S, eps_max, w
-                    
+
 def optimal_w(A):
     # A = L + D + R   
     D = LA.inv(np.diagflat(np.diag(A)))
