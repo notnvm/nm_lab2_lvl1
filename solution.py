@@ -55,25 +55,25 @@ class Funcs():
 
 func = Funcs()
 
-def find_exact_solution(x, y):
-    u = np.zeros((dv.n + 1, dv.m + 1))
-    for i in range(dv.n + 1):
-        for j in range(dv.m + 1):
+def find_exact_solution(x, y, n, m):
+    u = np.zeros((n + 1, m + 1))
+    for i in range(n + 1):
+        for j in range(m + 1):
             u[i][j] = func.u_test(x[i],y[j])
     return u
 
-def find_matrix_elements():
-    h = (dv.n/(dv.b-dv.a))**2
-    k = (dv.m/(dv.d-dv.c))**2
+def find_matrix_elements(n, m):
+    h = (n/(dv.b-dv.a))**2
+    k = (m/(dv.d-dv.c))**2
     mdiag_elem = -2*(h+k)
     return h,k,mdiag_elem
 
-def fill_bounds_v(v, x, y):
+def fill_bounds_v(v, x, y, n, m):
     if not dv.main_task:
-        for j in range(dv.m + 1):
+        for j in range(m + 1):
             v[0, j] = func.mu1_test(y[j])
             v[-1, j] = func.mu2_test(y[j])
-        for i in range(dv.n + 1):
+        for i in range(n + 1):
             v[i, 0] = func.mu3_test(x[i])
             v[i, -1] = func.mu4_test(x[i])
         
@@ -84,10 +84,10 @@ def fill_bounds_v(v, x, y):
         #     v[i, 0] = func.mu1_test(y[i])
         #     v[i, -1] = func.mu2_test(y[i]) #! верно
     else:
-        for j in range(dv.m + 1):
+        for j in range(m + 1):
             v[0, j] = func.mu1(y[j])
             v[-1, j] = func.mu2(y[j])
-        for i in range(dv.n + 1):
+        for i in range(n + 1):
             v[i, 0] = func.mu3(x[i])
             v[i, -1] = func.mu4(x[i])
         
@@ -99,15 +99,15 @@ def fill_bounds_v(v, x, y):
         #     v[i, -1] = func.mu2(y[i])
     v[:] = v[::-1] 
 
-def fill_matrix(): 
-    h,k,mdiag_elem = find_matrix_elements()
-    matrix = np.diag(np.full((dv.n-1)*(dv.m-1),mdiag_elem)) + np.diag(np.full((dv.n-1)*(dv.m-1) - 1,h), 1) + \
-     np.diag(np.full((dv.n-1)*(dv.m-1) - 1,h), -1) + np.diag(np.full((dv.n-1)*(dv.m-1) - 4,k), 4) + \
-         np.diag(np.full((dv.n-1)*(dv.m-1) - 4,k), -4)
+def fill_matrix(n, m): 
+    h,k,mdiag_elem = find_matrix_elements(n, m)
+    matrix = np.diag(np.full((n-1)*(m-1),mdiag_elem)) + np.diag(np.full((n-1)*(m-1) - 1,h), 1) + \
+     np.diag(np.full((n-1)*(m-1) - 1,h), -1) + np.diag(np.full((n-1)*(m-1) - 4,k), 4) + \
+         np.diag(np.full((n-1)*(m-1) - 4,k), -4)
          
     return matrix
 
-def upper_relaxation(v, w=1.236068):
+def upper_relaxation(v, n, m, w=1.236068):
     flag = False
     Nmax = dv.nmax
     S = 0
@@ -115,14 +115,14 @@ def upper_relaxation(v, w=1.236068):
     eps_max = 0
     eps_cur = 0
     
-    h2 = -(dv.n / (dv.b - dv.a)) ** 2
-    k2 = -(dv.m / (dv.d - dv.c)) ** 2
+    h2 = -(n / (dv.b - dv.a)) ** 2
+    k2 = -(m / (dv.d - dv.c)) ** 2
     a2 = -2 * (h2 + k2)
     
     while not flag:
         eps_max = 0
-        for j in range(1, dv.m):
-            for i in range(1, dv.n):
+        for j in range(1, m):
+            for i in range(1, n):
                 v_old = v[i][j]
                 v_new = -w*(h2 * (v[i + 1][j] + v[i - 1][j]) + k2 * (v[i][j + 1] + v[i][j - 1]))
                 if not dv.main_task:
