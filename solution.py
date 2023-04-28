@@ -24,7 +24,7 @@ class Funcs():
         return math.sin(math.pi*x*y)
 
     def rsf_test(self, x, y):
-        return (math.pi**2)*math.sin(math.pi*x*y)*(x**2+y**2)
+        return math.sin(math.pi*x*y)*((math.pi**2)*x**2+(math.pi**2)*y**2)
 
     def mu1_test(self, y):
         return self.u_test(dv.a, y)
@@ -55,7 +55,7 @@ class Funcs():
 
 func = Funcs()
 
-def find_exact_solution(x,y):
+def find_exact_solution(x, y):
     u = np.zeros((dv.n + 1, dv.m + 1))
     for i in range(dv.n + 1):
         for j in range(dv.m + 1):
@@ -70,34 +70,34 @@ def find_matrix_elements():
 
 def fill_bounds_v(v, x, y):
     if not dv.main_task:
-        # for j in range(dv.m + 1):
-        #     v[0, j] = func.mu1_test(y[j])
-        #     v[-1, j] = func.mu2_test(y[j])
-        # for i in range(dv.n + 1):
-        #     v[i, 0] = func.mu3_test(x[i])
-        #     v[i, -1] = func.mu4_test(x[i])
-        
         for j in range(dv.m + 1):
-            v[0, j] = func.mu3_test(x[j])
-            v[-1, j] = func.mu4_test(x[j])
+            v[0, j] = func.mu1_test(y[j])
+            v[-1, j] = func.mu2_test(y[j])
         for i in range(dv.n + 1):
-            v[i, 0] = func.mu1_test(y[i])
-            v[i, -1] = func.mu2_test(y[i]) 
-    else:
-        # for j in range(dv.m + 1):
-        #     v[0, j] = func.mu1(y[j])
-        #     v[-1, j] = func.mu2(y[j])
-        # for i in range(dv.n + 1):
-        #     v[i, 0] = func.mu3(x[i])
-        #     v[i, -1] = func.mu4(x[i])
+            v[i, 0] = func.mu3_test(x[i])
+            v[i, -1] = func.mu4_test(x[i])
         
-         for j in range(dv.m + 1):
-            v[0, j] = func.mu3(x[j])
-            v[-1, j] = func.mu4(x[j])
-         for i in range(dv.n + 1):
-            v[i, 0] = func.mu1(y[i])
-            v[i, -1] = func.mu2(y[i])
-    v[:] = v[::-1]
+        # for j in range(dv.m + 1):
+        #     v[0, j] = func.mu3_test(x[j])
+        #     v[-1, j] = func.mu4_test(x[j])
+        # for i in range(dv.n + 1):
+        #     v[i, 0] = func.mu1_test(y[i])
+        #     v[i, -1] = func.mu2_test(y[i]) #! верно
+    else:
+        for j in range(dv.m + 1):
+            v[0, j] = func.mu1(y[j])
+            v[-1, j] = func.mu2(y[j])
+        for i in range(dv.n + 1):
+            v[i, 0] = func.mu3(x[i])
+            v[i, -1] = func.mu4(x[i])
+        
+        #  for j in range(dv.m + 1):
+        #     v[0, j] = func.mu3(x[j])
+        #     v[-1, j] = func.mu4(x[j])
+        #  for i in range(dv.n + 1):
+        #     v[i, 0] = func.mu1(y[i]) #! верно
+        #     v[i, -1] = func.mu2(y[i])
+    v[:] = v[::-1] 
 
 def fill_matrix(): 
     h,k,mdiag_elem = find_matrix_elements()
@@ -126,9 +126,9 @@ def upper_relaxation(v, w=1.236068):
                 v_old = v[i][j]
                 v_new = -w*(h2 * (v[i + 1][j] + v[i - 1][j]) + k2 * (v[i][j + 1] + v[i][j - 1]))
                 if not dv.main_task:
-                    v_new += (1-w)*a2*v[i][j]+w*func.rsf_test(i,j) #! rsf_test
+                    v_new += (1-w)*a2*v[i][j]+w*func.rsf_test(i,j) #! rsf_test(i,j)
                 else:
-                     v_new += (1-w)*a2*v[i][j]+w*func.rsf(i,j)
+                    v_new += (1-w)*a2*v[i][j]+w*func.rsf(i,j)
                 v_new /= a2
                 eps_cur = math.fabs(v_old - v_new)
                 if eps_cur > eps_max:
