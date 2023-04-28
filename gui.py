@@ -16,9 +16,10 @@ from solution import dv
 
 class TaskSolution():
     v_num = np.zeros((dv.n + 1, dv.m + 1))
-    v2_num = np.zeros(((dv.n + 1)*2, (dv.m + 1)*2))
     u_exact = np.zeros((dv.n + 1, dv.m + 1))
     diff = np.zeros((dv.n + 1, dv.m + 1))
+    
+    v12_num = np.zeros(((dv.n + 1)*2 + 1, (dv.m + 1)*2 + 1))
     diffv12 = np.zeros((dv.n + 1, dv.m + 1))
     s_count, eps_max, omega = 0,0,0
     s_count2, eps_max2, omega2 = 0,0,0
@@ -27,10 +28,6 @@ task_sol = TaskSolution()
 class Callbacks:
     test_tab = True
     use_optimal_omega = False
-    
-    num_sol = True
-    exact_sol = False
-    diff_sol = False
     
     def update_help(self):
         if menu.cb.test_tab:
@@ -53,11 +50,11 @@ class Callbacks:
             
     def radio_butn_cb_main(self,sender,data):
         print(dpg.get_value('rb_main'))
-        if dpg.get_value('rb_main') == menu.rb_item_list[0]:
+        if dpg.get_value('rb_main') == menu.rb_item_list_main[0]:
             menu.create_table(dv.m + 1, dv.n + 1, task_sol.v_num)
-        if dpg.get_value('rb_main') == menu.rb_item_list[1]:
-            menu.create_table(dv.m + 1, dv.n + 1, task_sol.v2_num)
-        if dpg.get_value('rb_main') == menu.rb_item_list[2]:
+        if dpg.get_value('rb_main') == menu.rb_item_list_main[1]:
+            menu.create_table((dv.m+1)*2+1, (dv.n+1)*2+1, task_sol.v12_num)
+        if dpg.get_value('rb_main') == menu.rb_item_list_main[2]:
             menu.create_table(dv.m + 1, dv.n + 1, task_sol.diffv12)
     
     def set_test(self, sender, data):
@@ -103,11 +100,36 @@ class Callbacks:
             if not dv.main_task:
                 task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v, omega) # type: ignore
             else:
-                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, omega) # type: ignore
+                task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, omega) # type: ignore 
+                 
+                # n_old, m_old = dv.n, dv.m
+                # dv.n = (dv.n+1)*2
+                # dv.m = (dv.m+1)*2
+                
+                # x12 = np.linspace(dv.a, dv.b, dv.n+1)
+                # y12 = np.linspace(dv.c, dv.d, dv.m+1)
+                # v12 = np.zeros((dv.n+1, dv.m+1))
+                # sol.fill_bounds_v(v12, x12, y12)
+                # print(f'\n\n\nv12=\n{v12}\n\n\n')
+                
+                # dv.n, dv.m = n_old, m_old 
+                # task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v, omega) # type: ignore           
+                # n_old, m_old = dv.n, dv.m
+                
+                # dv.n = (dv.n+1)*2
+                # dv.m = (dv.m+1)*2
+                # task_sol.v_num12, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v12, omega) # type: ignore       
+                # print(f'\n\n\nv12=\n{v12}\n\n\n')
+                # print(f'\n\n\nv_num12=\n{task_sol.v12_num}\n\n\n')
+                # dv.n, dv.m = n_old, m_old 
         else:
             if not dv.main_task:
                 task_sol.v_num, task_sol.s_count, task_sol.eps_max, task_sol.omega = sol.upper_relaxation(v) # type: ignore
             else:
+                x12 = np.linspace(dv.a, dv.b, (dv.n+1)*2)
+                y12 = np.linspace(dv.c, dv.d, (dv.m+1)*2)
+                v12 = np.zeros(((dv.n + 1)*2, (dv.m + 1)*2))
+                sol.fill_bounds_v(v12, x12, y12)
                 task_sol.v_num, task_sol.s_count2, task_sol.eps_max2, task_sol.omega2 = sol.upper_relaxation(v) # type: ignore
             
         task_sol.u_exact=sol.find_exact_solution(x,y)
@@ -130,6 +152,7 @@ class Callbacks:
             dpg.add_image("texture_id_main", pos=[int((menu.width-menu.ofx)/4.5),menu.height-500], tag='plot_texture_main', parent='main_tab') 
         
         print(f'button pressed, solved={bool(dv.solved)}\nx={x}, y={y}') 
+        print(f'test_task={bool(not dv.main_task)}\n') 
         print(f'\ns={task_sol.s_count}, eps_max={np.around(task_sol.eps_max,5)},\nv_sol={task_sol.v_num}')
         
         # print(np.around(v[::-1], 3))
